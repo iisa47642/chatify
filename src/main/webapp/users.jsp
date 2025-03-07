@@ -9,16 +9,22 @@
 <body>
 <div class="container">
     <div class="header">
-        <h2>Users</h2>
+        <h2>Find Users</h2>
         <a href="logout" class="logout-btn">Logout</a>
+    </div>
+    <div class="search-form">
+        <form action="users" method="get">
+            <input type="text" name="search" placeholder="Enter username to search..."
+                   value="<%= request.getParameter("search") != null ? request.getParameter("search") : "" %>"
+                   minlength="2" maxlength="50" required>
+            <button type="submit">Search</button>
+        </form>
     </div>
     <div class="users-list">
         <%
             List<User> users = (List<User>) request.getAttribute("users");
-            User currentUser = (User) session.getAttribute("user");
-            if (users != null) {
+            if (users != null && !users.isEmpty()) {
                 for (User user : users) {
-                    if (user.getId() != currentUser.getId()) {
         %>
         <div class="user-item">
             <a href="chat?receiverId=<%= user.getId() %>">
@@ -26,8 +32,11 @@
             </a>
         </div>
         <%
-                    }
-                }
+            }
+        } else if (request.getParameter("search") != null) {
+        %>
+        <p>No users found.</p>
+        <%
             }
         %>
     </div>
