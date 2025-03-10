@@ -42,4 +42,16 @@ public class MessageDAO {
         }
         return messages;
     }
+
+    public void deleteChatMessages(int user1Id, int user2Id) throws SQLException {
+        String sql = "DELETE FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)";
+        try (Connection conn = DBConnection.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, user1Id);
+            stmt.setInt(2, user2Id);
+            stmt.setInt(3, user2Id);
+            stmt.setInt(4, user1Id);
+            stmt.executeUpdate();
+        }
+    }
 }

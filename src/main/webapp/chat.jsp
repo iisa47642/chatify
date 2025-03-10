@@ -13,6 +13,7 @@
     <div class="header">
         <h2>Chat with <%= ((User)request.getAttribute("receiver")).getUsername() %></h2>
         <a href="users" class="back-btn">Back to Users</a>
+        <a href="#" class="back-btn" onclick="deleteChat(<%= ((User)request.getAttribute("receiver")).getId() %>); return false;">Delete Chat</a>
         <a href="logout" class="logout-btn">Logout</a>
     </div>
     <div class="chat-container">
@@ -43,6 +44,19 @@
     </div>
 </div>
 <script>
+    function deleteChat(receiverId) {
+        if (confirm('Are you sure you want to delete this chat?')) {
+            fetch('chat?receiverId=' + receiverId, {
+                method: 'DELETE',
+            })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = 'users';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    }
     // Автоматическая прокрутка к последнему сообщению
     const messagesDiv = document.getElementById('messages');
     messagesDiv.scrollTop = messagesDiv.scrollHeight;

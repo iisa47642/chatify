@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @WebServlet("/users")
 public class UsersServlet extends HttpServlet {
@@ -36,13 +37,18 @@ public class UsersServlet extends HttpServlet {
             if (searchQuery != null && !searchQuery.trim().isEmpty()) {
                 // Если есть поисковый запрос, ищем пользователей по имени
                 User currentUser = (User) session.getAttribute("user");
-                users = userDAO.getAllUsers().stream()
-                        .filter(user -> user.getUsername().equalsIgnoreCase(searchQuery)
-                                && user.getId() != currentUser.getId())
+                users = Stream.concat(
+                                userDAO.getAllUsers().stream()
+                                        .filter(user -> user.getUsername().equalsIgnoreCase(searchQuery)
+                                                && user.getId() != currentUser.getId()),
+                                userDAO.getUsersByChat(currentUser.getId()).stream()
+                        )
+                        .distinct() // чтобы убрать дубликаты
                         .collect(Collectors.toList());
             } else {
                 // Если поискового запроса нет, передаем пустой список
-                users = List.of();
+                User currentUser = (User) session.getAttribute("user");
+                users = userDAO.getUsersByChat(currentUser.getId());
             }
 
             request.setAttribute("users", users);

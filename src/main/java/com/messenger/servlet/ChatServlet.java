@@ -76,4 +76,28 @@ public class ChatServlet extends HttpServlet {
             throw new ServletException(e);
         }
     }
+
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("user") == null) {
+            response.sendRedirect("login");
+            return;
+        }
+        User currentUser = (User) session.getAttribute("user");
+        String receiverIdStr = request.getParameter("receiverId");
+
+        if (receiverIdStr != null) {
+            try {
+                int receiverId = Integer.parseInt(receiverIdStr);
+                messageDAO.deleteChatMessages(currentUser.getId(), receiverId);
+                response.setStatus(HttpServletResponse.SC_OK);
+            } catch (SQLException e) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                throw new ServletException(e);
+            }
+        } else response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+    }
+
 }
+

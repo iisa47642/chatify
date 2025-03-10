@@ -9,4 +9,12 @@
   <welcome-file-list>
     <welcome-file>login.jsp</welcome-file>
   </welcome-file-list>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>Enable DELETE</web-resource-name>
+      <url-pattern>/*</url-pattern>
+      <http-method>DELETE</http-method>
+    </web-resource-collection>
+  </security-constraint>
 </web-app>
