@@ -15,6 +15,16 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+      <version>2.15.2</version> <!-- Убедитесь, что версия совпадает с версией jackson-databind -->
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.15.2</version>
+    </dependency>
     <!-- Servlet API -->
     <dependency>
       <groupId>jakarta.servlet</groupId>

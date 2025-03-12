@@ -17,4 +17,5 @@
       <http-method>DELETE</http-method>
     </web-resource-collection>
   </security-constraint>
+
 </web-app>
