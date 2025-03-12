@@ -4,10 +4,21 @@ import HeaderView from "../views/HeaderView.vue";
     export default {
         data() {
             return {
-                users: []
+                users: [],
+              username: ""
             }
         },
         methods: {
+            async addChat(evt) {
+              evt.preventDefault();
+              let response = await axios.get("api/users", {
+                params: {
+                  search: this.username
+                },
+                withCredentials: true
+              });
+              this.users = response.data.users;
+            },
             goChat(Userid) {
                 this.$router.push({ name: 'chat', params: { id: Userid } });
 
@@ -38,8 +49,8 @@ import HeaderView from "../views/HeaderView.vue";
 <div class="content">
     <div class="container">
         <form class="chats__form">
-            <input type="text" name="search" placeholder="кому написать?">
-            <button>Найти</button>
+            <input v-model="username" type="text" name="search" placeholder="кому написать?">
+            <button @click="addChat">Найти</button>
         </form>
         <div class="chats__title">Чаты</div>
         <ul class="chats__list">

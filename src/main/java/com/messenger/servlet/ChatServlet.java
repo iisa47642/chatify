@@ -161,9 +161,12 @@ public class ChatServlet extends HttpServlet {
         }
 
         User currentUser = (User) session.getAttribute("user");
-        Map<String, String> requestData = objectMapper.readValue(request.getInputStream(), Map.class);
-        String receiverIdStr = requestData.get("receiverId");
-
+        System.out.println("checkpoint 1");
+        String receiverIdStr = request.getParameter("receiverId");
+//        Map<String, String> requestData = objectMapper.readValue(request.getInputStream(), Map.class);
+//
+//        String receiverIdStr = requestData.get("receiverId");
+        System.out.println(receiverIdStr);
         if (receiverIdStr != null) {
             try {
                 int receiverId = Integer.parseInt(receiverIdStr);

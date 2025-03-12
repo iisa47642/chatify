@@ -16,9 +16,7 @@ import axios from "axios";
                     let response = await axios.delete("/api/chat", {
                         params: {
                              receiverId: this.recieverId,
-                        }
-                    },
-                    {
+                        },
                         headers: {
                             'Content-Type': 'application/json',
                         },
