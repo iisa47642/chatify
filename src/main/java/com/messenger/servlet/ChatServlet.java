@@ -7,8 +7,11 @@ import com.messenger.model.Message;
 import com.messenger.model.User;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
+
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -16,13 +19,19 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.util.logging.Logger;
 
 @WebServlet("/api/chat")
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024 * 10, // 10 MB
+        maxFileSize = 100 * 1024 * 1024,  // 100 MB
+        maxRequestSize = 15 * 1024 * 1024 * 10 // 150 MB
+)
 public class ChatServlet extends HttpServlet {
     private MessageDAO messageDAO;
     private UserDAO userDAO;
     private ObjectMapper objectMapper;
+    private static final Logger logger = Logger.getLogger(FileUploadServlet.class.getName());
 
     @Override
     public void init() {
@@ -131,13 +140,42 @@ public class ChatServlet extends HttpServlet {
         }
 
         User currentUser = (User) session.getAttribute("user");
-        Map<String, String> requestData = objectMapper.readValue(request.getInputStream(), Map.class);
-        int receiverId = Integer.parseInt(requestData.get("receiverId"));
-        String content = requestData.get("content");
+        int receiverId = Integer.valueOf(request.getParameter("receiverId"));
+        String content = request.getParameter("content");
+        String type = request.getParameter("type"); // "photo" или "voice"
+        Part filePart = request.getPart("file");
+        
+        String fileName = System.currentTimeMillis() + "_" + getSubmittedFileName(filePart);
+        // Путь для сохранения
+        String uploadPath = getServletContext().getRealPath("/uploads/" + type);
+        logger.info("Upload path: " + uploadPath); // Логирование пути
+        File uploadDir = new File(uploadPath);
 
-        Message message = new Message(currentUser.getId(), receiverId, content);
+        if (!uploadDir.exists()) {
+            boolean created = uploadDir.mkdirs();
+            logger.info("Directory created: " + created); // Логирование результата создания директории
+        }
+
         try {
+            filePart.write(uploadPath + File.separator + fileName);
+        } catch (IOException e) {
+            System.out.println("Ошибка записи файла: " + e.getMessage());
+        }
+        // Сохраняем файл
+        filePart.write(uploadPath + File.separator + fileName);
+        // Возвращаем URL для доступа к файлу
+        Map<String, String> responseData = new HashMap<>();
+        String Url = request.getContextPath() + "/uploads/" + type + "/" + fileName;
+
+        try {
+            Message message = new Message(currentUser.getId(), receiverId, content, Url);
             messageDAO.saveMessage(message);
+            //код для отправки через WebSocket
+            ChatWebSocketEndpoint.sendMessageToUser(receiverId, message);
+
+            responseData.put("url", Url);
+            responseData.put("type", type);
+            objectMapper.writeValue(response.getWriter(), responseData);
         } catch (SQLException e) {
             throw new ServletException(e);
         }
@@ -188,6 +226,17 @@ public class ChatServlet extends HttpServlet {
         response.setHeader("Access-Control-Allow-Credentials", "true"); // Добавьте эту строку!
         response.setHeader("Access-Control-Max-Age", "3600");
         response.setStatus(HttpServletResponse.SC_OK);
+    }
+
+    private String getSubmittedFileName(Part part) {
+        String contentDisp = part.getHeader("content-disposition");
+        String[] items = contentDisp.split(";");
+        for (String item : items) {
+            if (item.trim().startsWith("filename")) {
+                return item.substring(item.indexOf("=") + 2, item.length() - 1).replace(" ", "");
+            }
+        }
+        return "";
     }
 }
 

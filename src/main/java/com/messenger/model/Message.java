@@ -7,16 +7,18 @@ public class Message {
     private int senderId;
     private int receiverId;
     private String content;
+    private String fileUrl;
     private LocalDateTime timestamp;
 
     // Конструкторы, геттеры и сеттеры
     public Message() {}
 
-    public Message(int senderId, int receiverId, String content) {
+    public Message(int senderId, int receiverId, String content, String fileUrl) {
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.content = content;
         this.timestamp = LocalDateTime.now();
+        this.fileUrl = fileUrl;
     }
 
     // Геттеры и сеттеры
@@ -30,4 +32,6 @@ public class Message {
     public void setContent(String content) { this.content = content; }
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
 }

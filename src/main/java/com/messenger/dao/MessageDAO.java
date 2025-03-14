@@ -9,13 +9,14 @@ import java.util.List;
 
 public class MessageDAO {
     public void saveMessage(Message message) throws SQLException {
-        String sql = "INSERT INTO messages (sender_id, receiver_id, content, timestamp) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO messages (sender_id, receiver_id, content, file_url, timestamp) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, message.getSenderId());
             stmt.setInt(2, message.getReceiverId());
             stmt.setString(3, message.getContent());
-            stmt.setTimestamp(4, Timestamp.valueOf(message.getTimestamp()));
+            stmt.setString(4, message.getFileUrl());
+            stmt.setTimestamp(5, Timestamp.valueOf(message.getTimestamp()));
             stmt.executeUpdate();
         }
     }
@@ -36,6 +37,7 @@ public class MessageDAO {
                 message.setSenderId(rs.getInt("sender_id"));
                 message.setReceiverId(rs.getInt("receiver_id"));
                 message.setContent(rs.getString("content"));
+                message.setFileUrl(rs.getString("file_url"));
                 message.setTimestamp(rs.getTimestamp("timestamp").toLocalDateTime());
                 messages.add(message);
             }
