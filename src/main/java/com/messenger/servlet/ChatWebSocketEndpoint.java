@@ -49,8 +49,16 @@ public class ChatWebSocketEndpoint {
 
     @OnMessage
     public void onMessage(String message, Session session) {
-        // Обработка входящих сообщений от клиента (если нужно)
-        logger.info("Received message: " + message);
+        logger.info("Received message from client: " + message);
+
+        // Можно добавить обработку JSON-сообщений, например:
+        try {
+            Map<String, Object> messageData = objectMapper.readValue(message, Map.class);
+            int receiverId = (int) messageData.get("receiverId");
+            sendMessageToUser(receiverId, messageData);
+        } catch (Exception e) {
+            logger.severe("Error processing incoming message: " + e.getMessage());
+        }
     }
 
     // Метод для отправки сообщения конкретному пользователю

@@ -31,7 +31,7 @@ public class ChatServlet extends HttpServlet {
     private MessageDAO messageDAO;
     private UserDAO userDAO;
     private ObjectMapper objectMapper;
-    private static final Logger logger = Logger.getLogger(FileUploadServlet.class.getName());
+    private static final Logger logger = Logger.getLogger(ChatServlet.class.getName());
 
     @Override
     public void init() {
@@ -144,31 +144,34 @@ public class ChatServlet extends HttpServlet {
         String content = request.getParameter("content");
         String type = request.getParameter("type"); // "photo" или "voice"
         Part filePart = request.getPart("file");
-        
-        String fileName = System.currentTimeMillis() + "_" + getSubmittedFileName(filePart);
-        // Путь для сохранения
-        String uploadPath = getServletContext().getRealPath("/uploads/" + type);
-        logger.info("Upload path: " + uploadPath); // Логирование пути
-        File uploadDir = new File(uploadPath);
-
-        if (!uploadDir.exists()) {
-            boolean created = uploadDir.mkdirs();
-            logger.info("Directory created: " + created); // Логирование результата создания директории
+        String Url = null;
+        if (filePart != null) {
+            String fileName = System.currentTimeMillis() + "_" + getSubmittedFileName(filePart);
+            // Путь для сохранения
+            String uploadPath = getServletContext().getRealPath("/uploads/" + type);
+            logger.info("Upload path: " + uploadPath); // Логирование пути
+            File uploadDir = new File(uploadPath);
+            if (!uploadDir.exists()) {
+                boolean created = uploadDir.mkdirs();
+                logger.info("Directory created: " + created); // Логирование результата создания директории
+            }
+            try {
+                filePart.write(uploadPath + File.separator + fileName);
+            } catch (IOException e) {
+                System.out.println("Ошибка записи файла: " + e.getMessage());
+            }
+            // Возвращаем URL для доступа к файлу
+            Url = "http://localhost:8080" + request.getContextPath() + "/uploads/" + type + "/" + fileName;
         }
 
-        try {
-            filePart.write(uploadPath + File.separator + fileName);
-        } catch (IOException e) {
-            System.out.println("Ошибка записи файла: " + e.getMessage());
-        }
-        // Сохраняем файл
-        filePart.write(uploadPath + File.separator + fileName);
+
+
+
         // Возвращаем URL для доступа к файлу
         Map<String, String> responseData = new HashMap<>();
-        String Url = request.getContextPath() + "/uploads/" + type + "/" + fileName;
 
         try {
-            Message message = new Message(currentUser.getId(), receiverId, content, Url);
+            Message message = new Message(currentUser.getId(), receiverId, content, Url, type);
             messageDAO.saveMessage(message);
             //код для отправки через WebSocket
             ChatWebSocketEndpoint.sendMessageToUser(receiverId, message);
@@ -189,6 +192,7 @@ public class ChatServlet extends HttpServlet {
         response.setHeader("Access-Control-Allow-Credentials", "true"); // Добавьте эту строку!
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
+            System.out.println("session is null");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             Map<String, String> error = new HashMap<>();
             error.put("error", "User not authenticated");

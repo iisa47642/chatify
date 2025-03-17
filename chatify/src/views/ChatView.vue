@@ -9,11 +9,18 @@ export default {
       messages: [],
       message: "",
       file: "",
+      socket: "",
+      fileType: ""
     }
   },
   methods: {
     fileChange(evt) {
       this.file = evt.target.files[0];
+      if (this.file) {
+        this.fileType = this.file.type;
+      } else {
+        this.fileType="";
+      }
     },
     async deleteChat() {
       try {
@@ -27,6 +34,7 @@ export default {
                 'Content-Type': 'application/json',
               },
               withCredentials: true});
+        console.log(response.data);
         this.$router.push({name: "home"});
 
       } catch(e) {
@@ -42,15 +50,32 @@ export default {
         console.log("done");
       });
     },
+    checkType(Itemtype, type) {
+      if (Itemtype === type) {
+        console.log(Itemtype, type, 1);
+        return true;
+      } else {
+        console.log(Itemtype, type, 0);
+        return false;
+      }
+    },
     async sendMessage(evt) {
       evt.preventDefault();
       if (this.message.trim() || this.file) {
         try {
           let formData = new FormData();
           formData.append("receiverId", this.recieverId);
-          formData.append("type", "photo");
+          if (this.fileType.includes("image")) {
+            formData.append("type", "photo");
+          }
+          if (this.fileType.includes("audio")) {
+            formData.append("type", "audio");
+          }
+
           if (this.file) {
             formData.append("file", this.file);
+
+
           }
           if (this.message.trim()) {
             formData.append("content", this.message.trim());
@@ -85,23 +110,41 @@ export default {
     },
     async loadData() {
       try {
-        console.log(this.recieverId);
         let response = await axios.get("/api/chat", {
           params: {
             receiverId: this.recieverId
           },
           withCredentials: true
         });
-        console.log(response.data);
         this.user = response.data.receiver;
         this.messages = response.data.messages;
-        if (response.status == 401) {
-          this.$router.push({name: "login"});
+        console.log(this.user.id);
+        const currentUserId = this.user.id; // или как у вас хранится ID
+         // Устанавливаем WebSocket соединение
+        this.socket = new WebSocket(`ws://localhost:8080/chatify2_0/websocket/chat/${currentUserId}`);
+        this.socket.onopen = (event) => {
+          console.log("Websocket connection opened");
         }
+        this.socket.onmessage = (event) => {
+          console.log(event.data);
+          const message = JSON.parse(event.data);
+          this.messages.push(message);
+
+        };
+        // Обрабатываем закрытие соединения
+        this.socket.onclose = () => {
+          console.log('WebSocket connection closed');
+          // Можно добавить логику для переподключения
+
+        };
+
       } catch(e) {
 
         console.log(e);
       }
+    },
+    socketSendMessage() {
+
     }
   },
   components: {
@@ -109,7 +152,11 @@ export default {
   },
   mounted() {
     this.loadData();
-    this.scrollToBottom();
+  },
+  beforeDestroy() {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.close();
+    }
   }
 }
 </script>
@@ -144,9 +191,14 @@ export default {
         <div v-for="(item,index) in messages" :class="{'message': true, 'your__message': checkSender(item.senderId), 'inter__message': !checkSender(item.senderId)}">
           <div class="message_body">
             <div class="message__text">{{ item.content }}</div>
-            <div class="mesasge__time">{{ item.timestamp }}</div>
+            <div v-if="checkType(item.fileType,'photo')" class="message__img">
+              <img  :src="item.fileUrl" alt="">
+            </div>
+            <div v-if="checkType(item.fileType,'audio')" class="audio">
+              <audio controls :src="item.fileUrl"></audio>
+            </div>
+            <div class="mesasge__time">{{ item.timestamp[2] }}:{{item.timestamp[3]}}</div>
           </div>
-          <img src="http://localhost:8080/chatify2_0/uploads/voice/1741949735924_blue.mp3" alt="">
         </div>
       </div>
       <div class="bottom">
@@ -188,7 +240,13 @@ export default {
   flex-direction: column;
 }
 
+.message__img {
+  max-width: 400px;
+}
 
+.message__img img {
+  width: 100%;
+}
 
 .top__menu {
   display: flex;
