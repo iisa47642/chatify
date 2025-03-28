@@ -128,13 +128,13 @@ public class ChatServlet extends HttpServlet {
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
         response.setHeader("Access-Control-Allow-Credentials", "true"); // Добавьте эту строку!
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             Map<String, String> error = new HashMap<>();
             error.put("error", "User not authenticated");
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
             objectMapper.writeValue(response.getWriter(), error);
             return;
         }
@@ -203,17 +203,15 @@ public class ChatServlet extends HttpServlet {
         }
 
         User currentUser = (User) session.getAttribute("user");
-        System.out.println("checkpoint 1");
         String receiverIdStr = request.getParameter("receiverId");
-//        Map<String, String> requestData = objectMapper.readValue(request.getInputStream(), Map.class);
-//
-//        String receiverIdStr = requestData.get("receiverId");
+
         System.out.println(receiverIdStr);
         if (receiverIdStr != null) {
             try {
                 int receiverId = Integer.parseInt(receiverIdStr);
                 messageDAO.deleteChatMessages(currentUser.getId(), receiverId);
                 response.setStatus(HttpServletResponse.SC_OK);
+                ChatWebSocketEndpoint.SessionClose(receiverId);
             } catch (SQLException e) {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 throw new ServletException(e);

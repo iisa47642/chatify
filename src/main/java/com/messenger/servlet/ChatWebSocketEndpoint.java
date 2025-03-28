@@ -19,15 +19,27 @@ public class ChatWebSocketEndpoint {
     static {
         objectMapper.registerModule(new JavaTimeModule());
     }
-
+    private static final Map<Integer, java.util.Queue<String>> pendingMessages = new ConcurrentHashMap<>();
     @OnOpen
     public void onOpen(Session session, @PathParam("userId") String userIdStr) {
         try {
             int userId = Integer.parseInt(userIdStr);
-            sessions.put(userId, session);
-            logger.info("WebSocket connection opened for user: " + userId);
-        } catch (NumberFormatException e) {
-            logger.severe("Invalid user ID: " + userIdStr);
+            if (session.isOpen()) {
+                sessions.put(userId, session);
+                logger.info("WebSocket connection opened for user: " + userId);
+
+                // Отправка отложенных сообщений
+                java.util.Queue<String> messages = pendingMessages.get(userId);
+                if (messages != null && !messages.isEmpty()) {
+                    while (!messages.isEmpty()) {
+                        String message = messages.poll();
+                        session.getBasicRemote().sendText(message);
+                        logger.info("Sent pending message to user: " + userId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.severe("Error in onOpen: " + e.getMessage());
         }
     }
 
@@ -45,34 +57,53 @@ public class ChatWebSocketEndpoint {
     @OnError
     public void onError(Session session, Throwable throwable) {
         logger.severe("WebSocket error: " + throwable.getMessage());
+        sessions.values().removeIf(s -> s.equals(session));
+        try {
+            session.close();
+        } catch (IOException e) {
+            logger.severe("Error closing session: " + e.getMessage());
+        }
     }
 
     @OnMessage
     public void onMessage(String message, Session session) {
         logger.info("Received message from client: " + message);
+    }
 
-        // Можно добавить обработку JSON-сообщений, например:
+    public static void sendMessageToUser(int userId, Object message) {
         try {
-            Map<String, Object> messageData = objectMapper.readValue(message, Map.class);
-            int receiverId = (int) messageData.get("receiverId");
-            sendMessageToUser(receiverId, messageData);
-        } catch (Exception e) {
-            logger.severe("Error processing incoming message: " + e.getMessage());
+            String jsonMessage = objectMapper.writeValueAsString(message);
+            Session session = sessions.get(userId);
+
+            if (session != null && session.isOpen()) {
+                session.getBasicRemote().sendText(jsonMessage);
+                logger.info("Message sent to user: " + userId);
+            } else {
+                // Сохраняем сообщение для будущей отправки
+                pendingMessages.computeIfAbsent(userId, k -> new java.util.concurrent.ConcurrentLinkedQueue<>())
+                        .add(jsonMessage);
+                logger.info("User " + userId + " is not connected, message queued");
+            }
+        } catch (IOException e) {
+            logger.severe("Failed to send message: " + e.getMessage());
         }
     }
 
-    // Метод для отправки сообщения конкретному пользователю
-    public static void sendMessageToUser(int userId, Object message) {
+
+    public static void SessionClose(int userId) {
         Session session = sessions.get(userId);
-        if (session != null && session.isOpen()) {
+        if (session != null) {
+            sessions.values().removeIf(s -> s.equals(session));
             try {
-                session.getBasicRemote().sendText(objectMapper.writeValueAsString(message));
-                logger.info("Message sent to user: " + userId);
+                session.close();
             } catch (IOException e) {
-                logger.severe("Failed to send message: " + e.getMessage());
+                logger.severe("Closing session: " + e.getMessage());
             }
-        } else {
-            logger.info("User " + userId + " is not connected");
         }
+    }
+
+    public static boolean isUserConnected(int userId) {
+        Session session = sessions.get(userId);
+        return session != null && session.isOpen();
     }
 }
