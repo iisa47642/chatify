@@ -64,6 +64,7 @@ public class ChatServlet extends HttpServlet {
         User currentUser = (User) session.getAttribute("user");
         String receiverIdStr = request.getParameter("receiverId");
 
+
         try {
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
@@ -141,7 +142,8 @@ public class ChatServlet extends HttpServlet {
 
         User currentUser = (User) session.getAttribute("user");
         int receiverId = Integer.valueOf(request.getParameter("receiverId"));
-        String content = request.getParameter("content");
+        String senderContent = request.getParameter("senderContent");
+        String receiverContent = request.getParameter("receiverContent");
         String type = request.getParameter("type"); // "photo" или "voice"
         Part filePart = request.getPart("file");
         String Url = null;
@@ -171,7 +173,7 @@ public class ChatServlet extends HttpServlet {
         Map<String, String> responseData = new HashMap<>();
 
         try {
-            Message message = new Message(currentUser.getId(), receiverId, content, Url, type);
+            Message message = new Message(currentUser.getId(), receiverId, receiverContent, senderContent, Url, type);
             messageDAO.saveMessage(message);
             //код для отправки через WebSocket
             ChatWebSocketEndpoint.sendMessageToUser(receiverId, message);

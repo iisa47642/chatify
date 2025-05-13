@@ -30,8 +30,10 @@ import HeaderView from "../views/HeaderView.vue";
                     });
                     console.log(response);
                     this.users = response.data.users;
+                    console.log(this.users)
+
                 } catch(e) {
-                    this.$router.push({name: "login"});
+                    //this.$router.push({name: "login"});
                     console.log(e);
                 }
             }

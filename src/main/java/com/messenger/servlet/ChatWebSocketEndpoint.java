@@ -65,7 +65,6 @@ public class ChatWebSocketEndpoint {
         }
     }
 
-    @OnMessage
     public void onMessage(String message, Session session) {
         logger.info("Received message from client: " + message);
     }

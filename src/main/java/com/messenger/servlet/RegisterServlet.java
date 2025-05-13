@@ -36,8 +36,8 @@ public class RegisterServlet extends HttpServlet {
         Map<String, String> requestData = objectMapper.readValue(request.getInputStream(), Map.class);
         String username = requestData.get("username");
         String password = requestData.get("password");
-
-        User user = new User(username, password);
+        String publicKey = requestData.get("publicKey");
+        User user = new User(username, password, publicKey);
         try {
             userDAO.registerUser(user);
             response.setStatus(HttpServletResponse.SC_OK);
@@ -53,6 +53,7 @@ public class RegisterServlet extends HttpServlet {
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
             objectMapper.writeValue(response.getWriter(), error);
+
         }
     }
     protected void doOptions(HttpServletRequest request, HttpServletResponse response)
